@@ -11,6 +11,7 @@ type Reader struct {
 	rd          io.Reader
 	unalignment int
 	remaining   int
+	maxBufSize  int
 }
 
 func NewReader(r io.Reader) *Reader {
@@ -25,6 +26,7 @@ var (
 
 const (
 	alignTo = 4
+	MB      = 1024 * 1024
 )
 
 func (r *Reader) Next() (*Header, error) {
@@ -150,8 +152,16 @@ func readHeader(rd io.Reader) (*Header, error) {
 
 func (r *Reader) skip(n int) error {
 	c := 0
+	maxBuff := MB
+	if r.maxBufSize != 0 {
+		maxBuff = r.maxBufSize
+	}
 	for c < n {
-		buf := make([]byte, n-c)
+		bufSize := n - c
+		if bufSize > maxBuff {
+			bufSize = maxBuff
+		}
+		buf := make([]byte, bufSize)
 
 		nr, err := r.rd.Read(buf)
 		if err != nil {
